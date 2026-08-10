@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asystent Finansów</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <h1>💰 Asystent Finansów</h1>
+    <div class="month-picker">
+      <button id="prevMonth" class="icon-btn" title="Poprzedni miesiąc">‹</button>
+      <span id="monthLabel"></span>
+      <button id="nextMonth" class="icon-btn" title="Następny miesiąc">›</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="card income-card">
+      <h2>Wypłata w tym miesiącu</h2>
+      <div class="income-row">
+        <input type="number" id="incomeInput" placeholder="np. 5000" step="0.01" min="0">
+        <button id="saveIncomeBtn" class="btn primary">Zapisz</button>
+      </div>
+    </section>
+
+    <section class="card summary-card">
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="label">Wypłata</span>
+          <span class="value" id="sumIncome">0,00 zł</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Wydano</span>
+          <span class="value negative" id="sumExpenses">0,00 zł</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Zostało</span>
+          <span class="value" id="sumRemaining">0,00 zł</span>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Dodaj wydatek</h2>
+      <form id="expenseForm" class="expense-form">
+        <input type="number" id="expAmount" placeholder="Kwota (zł)" step="0.01" min="0.01" required>
+        <input type="text" id="expCategory" list="categoryList" placeholder="Kategoria (np. Jedzenie)" autocomplete="off" required>
+        <datalist id="categoryList"></datalist>
+        <input type="text" id="expDesc" placeholder="Opis (opcjonalnie)">
+        <input type="date" id="expDate" required>
+        <button type="submit" class="btn primary">Dodaj</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Wydatki wg kategorii</h2>
+      <div id="categoryChart" class="category-chart"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-header">
+        <h2>Historia wydatków</h2>
+        <button id="exportBtn" class="btn success">📊 Generuj raport Excel</button>
+      </div>
+      <div class="table-wrap">
+        <table id="expenseTable">
+          <thead>
+            <tr><th>Data</th><th>Kategoria</th><th>Opis</th><th>Kwota</th><th></th></tr>
+          </thead>
+          <tbody id="expenseTableBody"></tbody>
+        </table>
+        <p id="emptyState" class="empty-state">Brak wydatków w tym miesiącu.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="xlsx.full.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
