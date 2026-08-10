@@ -5,12 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Asystent Finansów</title>
 <link rel="stylesheet" href="style.css">
+<script>
+(function () {
+  var saved = localStorage.getItem('asystent-finansow-theme');
+  if (saved === 'light' || saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', saved);
+  }
+})();
+</script>
 </head>
 <body>
 
+<button id="themeToggleBtn" class="theme-toggle-fixed" title="Zmień motyw" aria-label="Zmień motyw">🌙</button>
+
 <div id="authScreen" class="auth-wrap">
   <div class="card auth-card">
-    <h1>💰 Asystent Finansów</h1>
+    <h1>Asystent Finansów</h1>
     <p id="authTitle" class="auth-subtitle">Zaloguj się do swojego konta</p>
     <form id="authForm">
       <input type="email" id="authEmail" placeholder="E-mail" autocomplete="email" required>
@@ -31,7 +41,7 @@
 
 <div id="appScreen" class="app hidden">
   <header class="topbar">
-    <h1>💰 Asystent Finansów</h1>
+    <h1>Asystent Finansów</h1>
     <div class="month-picker">
       <button id="prevMonth" class="icon-btn" title="Poprzedni miesiąc">‹</button>
       <span id="monthLabel"></span>

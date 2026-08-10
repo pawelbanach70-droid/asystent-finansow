@@ -72,8 +72,24 @@ function getCategoryColor(name) {
   return color;
 }
 
+function groupByCategory(expenses) {
+  const map = {};
+  for (const exp of expenses) {
+    const key = exp.category.toLowerCase();
+    if (!map[key]) map[key] = { label: exp.category, total: 0 };
+    map[key].total += exp.amount;
+  }
+  return Object.values(map).sort((a, b) => b.total - a.total);
+}
+
+function normalizeCategoryName(name) {
+  const trimmed = name.trim();
+  const existing = data._categories.find(c => c.toLowerCase() === trimmed.toLowerCase());
+  return existing || trimmed;
+}
+
 function rememberCategory(name) {
-  if (!data._categories.includes(name)) {
+  if (!data._categories.some(c => c.toLowerCase() === name.toLowerCase())) {
     data._categories.push(name);
   }
 }
@@ -125,6 +141,31 @@ function shiftMonth(key, delta) {
   const d = new Date(y, m - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
+
+// ---- Motyw (jasny/ciemny) ----
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+
+function getEffectiveTheme() {
+  const explicit = document.documentElement.getAttribute('data-theme');
+  if (explicit) return explicit;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyThemeIcon() {
+  const effective = getEffectiveTheme();
+  themeToggleBtn.textContent = effective === 'dark' ? '☀️' : '🌙';
+  themeToggleBtn.title = effective === 'dark' ? 'Przełącz na jasny motyw' : 'Przełącz na ciemny motyw';
+  themeToggleBtn.setAttribute('aria-label', themeToggleBtn.title);
+}
+
+themeToggleBtn.addEventListener('click', () => {
+  const next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('asystent-finansow-theme', next);
+  applyThemeIcon();
+});
+
+applyThemeIcon();
 
 // ---- DOM refs ----
 const monthLabelEl = document.getElementById('monthLabel');
@@ -267,7 +308,7 @@ document.getElementById('saveIncomeBtn').addEventListener('click', () => {
 expenseForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const amount = parseFloat(document.getElementById('expAmount').value);
-  const category = document.getElementById('expCategory').value.trim() || 'Inne';
+  const category = normalizeCategoryName(document.getElementById('expCategory').value.trim() || 'Inne');
   const desc = document.getElementById('expDesc').value.trim();
   const date = document.getElementById('expDate').value;
   if (isNaN(amount) || amount <= 0 || !date) return;
@@ -341,24 +382,20 @@ function render() {
   }
 
   // category breakdown
-  const byCategory = {};
-  for (const exp of month.expenses) {
-    byCategory[exp.category] = (byCategory[exp.category] || 0) + exp.amount;
-  }
+  const grouped = groupByCategory(month.expenses);
   categoryChartEl.innerHTML = '';
-  const maxVal = Math.max(1, ...Object.values(byCategory));
-  const categories = Object.keys(byCategory).sort((a, b) => byCategory[b] - byCategory[a]);
-  if (!categories.length) {
+  const maxVal = Math.max(1, ...grouped.map(g => g.total));
+  if (!grouped.length) {
     categoryChartEl.innerHTML = '<p class="empty-state">Brak danych do pokazania.</p>';
   } else {
-    for (const cat of categories) {
-      const val = byCategory[cat];
+    for (const { label, total } of grouped) {
+      const pct = totalExpenses > 0 ? Math.round((total / totalExpenses) * 100) : 0;
       const row = document.createElement('div');
       row.className = 'category-row';
       row.innerHTML = `
-        <span>${getCategoryIcon(cat)} ${cat}</span>
-        <span class="category-bar-bg"><span class="category-bar-fill" style="width:${(val / maxVal) * 100}%;background:${getCategoryColor(cat)}"></span></span>
-        <span>${formatMoney(val)}</span>
+        <span class="category-name">${getCategoryIcon(label)} ${label}</span>
+        <span class="category-bar-bg"><span class="category-bar-fill" style="width:${(total / maxVal) * 100}%;background:${getCategoryColor(label)}"></span></span>
+        <span class="category-amount">${formatMoney(total)}<span class="category-percent">(${pct}%)</span></span>
       `;
       categoryChartEl.appendChild(row);
     }
@@ -370,10 +407,7 @@ function exportExcelReport() {
   const totalExpenses = month.expenses.reduce((s, e) => s + e.amount, 0);
   const remaining = (month.income || 0) - totalExpenses;
 
-  const byCategory = {};
-  for (const exp of month.expenses) {
-    byCategory[exp.category] = (byCategory[exp.category] || 0) + exp.amount;
-  }
+  const grouped = groupByCategory(month.expenses);
 
   const wb = XLSX.utils.book_new();
 
@@ -390,9 +424,8 @@ function exportExcelReport() {
   XLSX.utils.book_append_sheet(wb, summaryWs, 'Podsumowanie');
 
   const categoryRows = [['Kategoria', 'Suma', '% wydatków']];
-  const catSorted = Object.keys(byCategory).sort((a, b) => byCategory[b] - byCategory[a]);
-  for (const cat of catSorted) {
-    categoryRows.push([`${getCategoryIcon(cat)} ${cat}`, round2(byCategory[cat]), totalExpenses > 0 ? ((byCategory[cat] / totalExpenses) * 100).toFixed(1) + '%' : '0%']);
+  for (const { label, total } of grouped) {
+    categoryRows.push([`${getCategoryIcon(label)} ${label}`, round2(total), totalExpenses > 0 ? ((total / totalExpenses) * 100).toFixed(1) + '%' : '0%']);
   }
   const categoryWs = XLSX.utils.aoa_to_sheet(categoryRows);
   categoryWs['!cols'] = [{ wch: 16 }, { wch: 12 }, { wch: 12 }];
