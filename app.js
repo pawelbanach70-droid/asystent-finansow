@@ -120,6 +120,7 @@ function getMonthData(key) {
   if (!data[key]) {
     data[key] = { income: 0, expenses: [] };
   }
+  data[key].extraIncome = data[key].extraIncome || [];
   return data[key];
 }
 
@@ -203,6 +204,13 @@ const expenseTableBody = document.getElementById('expenseTableBody');
 const emptyStateEl = document.getElementById('emptyState');
 const categoryChartEl = document.getElementById('categoryChart');
 const expDateInput = document.getElementById('expDate');
+
+const extraIncomeForm = document.getElementById('extraIncomeForm');
+const extraTitleInput = document.getElementById('extraTitle');
+const extraAmountInput = document.getElementById('extraAmount');
+const extraDateInput = document.getElementById('extraDate');
+const extraIncomeListEl = document.getElementById('extraIncomeList');
+const extraIncomeEmptyStateEl = document.getElementById('extraIncomeEmptyState');
 
 const fixedForm = document.getElementById('fixedForm');
 const fixedTitleInput = document.getElementById('fixedTitle');
@@ -369,6 +377,51 @@ function deleteExpense(id) {
   render();
 }
 
+extraIncomeForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const title = extraTitleInput.value.trim();
+  const amount = parseFloat(extraAmountInput.value);
+  const date = extraDateInput.value;
+  if (!title || isNaN(amount) || amount <= 0 || !date) return;
+
+  const month = getMonthData(currentMonth);
+  month.extraIncome.push({ id: Date.now(), title, amount, date });
+  saveData();
+
+  extraTitleInput.value = '';
+  extraAmountInput.value = '';
+  extraDateInput.value = '';
+  render();
+});
+
+function deleteExtraIncome(id) {
+  const month = getMonthData(currentMonth);
+  month.extraIncome = month.extraIncome.filter(x => x.id !== id);
+  saveData();
+  render();
+}
+
+function renderExtraIncomeList() {
+  const month = getMonthData(currentMonth);
+  const items = [...month.extraIncome].sort((a, b) => b.date.localeCompare(a.date));
+  extraIncomeListEl.innerHTML = '';
+  extraIncomeEmptyStateEl.style.display = items.length ? 'none' : 'block';
+  for (const item of items) {
+    const el = document.createElement('div');
+    el.className = 'fixed-item';
+    el.innerHTML = `
+      <div class="fixed-item-main">
+        <span class="fixed-item-title">${item.title}</span>
+        <span class="fixed-item-meta">${item.date}</span>
+      </div>
+      <span class="fixed-item-amount positive">+${formatMoney(item.amount)}</span>
+      <button class="delete-btn" title="Usuń">✕</button>
+    `;
+    el.querySelector('.delete-btn').addEventListener('click', () => deleteExtraIncome(item.id));
+    extraIncomeListEl.appendChild(el);
+  }
+}
+
 fixedForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const title = fixedTitleInput.value.trim();
@@ -431,19 +484,22 @@ function render() {
 
   const totalExpenses = month.expenses.reduce((s, e) => s + e.amount, 0);
   const totalFixed = data._fixedPayments.reduce((s, p) => s + p.amount, 0);
+  const totalExtraIncome = month.extraIncome.reduce((s, x) => s + x.amount, 0);
   const totalOut = totalExpenses + totalFixed;
-  const remaining = (month.income || 0) - totalOut;
+  const totalIn = (month.income || 0) + totalExtraIncome;
+  const remaining = totalIn - totalOut;
 
-  sumIncomeEl.textContent = formatMoney(month.income || 0);
+  sumIncomeEl.textContent = formatMoney(totalIn);
   sumExpensesEl.textContent = formatMoney(totalOut);
   sumRemainingEl.textContent = formatMoney(remaining);
   sumRemainingEl.classList.toggle('negative', remaining < 0);
 
-  const pct = month.income > 0 ? Math.min(100, (totalOut / month.income) * 100) : 0;
+  const pct = totalIn > 0 ? Math.min(100, (totalOut / totalIn) * 100) : 0;
   progressFillEl.style.width = pct + '%';
   progressFillEl.classList.toggle('over', remaining < 0);
 
   renderFixedList();
+  renderExtraIncomeList();
 
   // table
   const sorted = [...month.expenses].sort((a, b) => b.date.localeCompare(a.date));
@@ -487,8 +543,10 @@ function exportExcelReport() {
   const month = getMonthData(currentMonth);
   const totalExpenses = month.expenses.reduce((s, e) => s + e.amount, 0);
   const totalFixed = data._fixedPayments.reduce((s, p) => s + p.amount, 0);
+  const totalExtraIncome = month.extraIncome.reduce((s, x) => s + x.amount, 0);
   const totalOut = totalExpenses + totalFixed;
-  const remaining = (month.income || 0) - totalOut;
+  const totalIn = (month.income || 0) + totalExtraIncome;
+  const remaining = totalIn - totalOut;
 
   const grouped = groupByCategory(month.expenses);
 
@@ -498,11 +556,13 @@ function exportExcelReport() {
     ['Raport finansowy', monthLabel(currentMonth)],
     [],
     ['Wypłata', round2(month.income || 0)],
+    ['Dodatkowe wpływy', round2(totalExtraIncome)],
+    ['Suma przychodów', round2(totalIn)],
     ['Wydatki jednorazowe', round2(totalExpenses)],
     ['Stałe opłaty', round2(totalFixed)],
     ['Suma wydatków', round2(totalOut)],
     ['Pozostało', round2(remaining)],
-    ['% wypłaty wydane', month.income > 0 ? ((totalOut / month.income) * 100).toFixed(1) + '%' : 'n/d'],
+    ['% przychodów wydane', totalIn > 0 ? ((totalOut / totalIn) * 100).toFixed(1) + '%' : 'n/d'],
   ];
   const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
   summaryWs['!cols'] = [{ wch: 22 }, { wch: 18 }];
@@ -524,6 +584,15 @@ function exportExcelReport() {
   const expenseWs = XLSX.utils.aoa_to_sheet(expenseRows);
   expenseWs['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 30 }, { wch: 12 }];
   XLSX.utils.book_append_sheet(wb, expenseWs, 'Wydatki');
+
+  const extraRows = [['Źródło', 'Kwota', 'Data']];
+  const sortedExtra = [...month.extraIncome].sort((a, b) => a.date.localeCompare(b.date));
+  for (const x of sortedExtra) {
+    extraRows.push([x.title, round2(x.amount), x.date]);
+  }
+  const extraWs = XLSX.utils.aoa_to_sheet(extraRows);
+  extraWs['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, extraWs, 'Dodatkowe wpływy');
 
   const fixedRows = [['Tytuł', 'Kwota', 'Data pobrania', 'Stałe zlecenie']];
   const sortedFixed = [...data._fixedPayments].sort((a, b) => a.date.localeCompare(b.date));

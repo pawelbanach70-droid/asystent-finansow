@@ -319,6 +319,10 @@ input:focus, select:focus {
   white-space: nowrap;
 }
 
+.fixed-item-amount.positive {
+  color: var(--success);
+}
+
 .standing-order-badge {
   display: inline-block;
   margin-left: 6px;

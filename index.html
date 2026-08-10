@@ -68,10 +68,22 @@
       </div>
     </section>
 
+    <section class="card">
+      <h2>Dodatkowe wpływy</h2>
+      <form id="extraIncomeForm" class="fixed-form">
+        <input type="text" id="extraTitle" placeholder="Źródło (np. Przelew BLIK)" required>
+        <input type="number" id="extraAmount" placeholder="Kwota (zł)" step="0.01" min="0.01" required>
+        <input type="date" id="extraDate" required>
+        <button type="submit" class="btn primary">Dodaj wpływ</button>
+      </form>
+      <div id="extraIncomeList" class="fixed-list"></div>
+      <p id="extraIncomeEmptyState" class="empty-state">Brak dodatkowych wpływów w tym miesiącu.</p>
+    </section>
+
     <section class="card summary-card">
       <div class="summary-grid">
         <div class="summary-item">
-          <span class="label">Wypłata</span>
+          <span class="label">Przychody</span>
           <span class="value" id="sumIncome">0,00 zł</span>
         </div>
         <div class="summary-item">
