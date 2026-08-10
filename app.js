@@ -474,6 +474,14 @@ function deleteFixedPayment(id) {
   render();
 }
 
+function toggleStandingOrder(id) {
+  const payment = data._fixedPayments.find(p => p.id === id);
+  if (!payment) return;
+  payment.standingOrder = !payment.standingOrder;
+  saveData();
+  render();
+}
+
 function renderFixedList() {
   const payments = [...data._fixedPayments].sort((a, b) => a.date.localeCompare(b.date));
   fixedListEl.innerHTML = '';
@@ -483,12 +491,14 @@ function renderFixedList() {
     item.className = 'fixed-item';
     item.innerHTML = `
       <div class="fixed-item-main">
-        <span class="fixed-item-title">${p.title}${p.standingOrder ? '<span class="standing-order-badge">zlecenie stałe</span>' : ''}</span>
+        <span class="fixed-item-title">${p.title}</span>
         <span class="fixed-item-meta">${p.date}</span>
+        <button type="button" class="standing-order-toggle${p.standingOrder ? ' active' : ''}">${p.standingOrder ? '✓ zlecenie stałe' : 'oznacz jako zlecenie stałe'}</button>
       </div>
       <span class="fixed-item-amount">${formatMoney(p.amount)}</span>
       <button class="delete-btn" title="Usuń">✕</button>
     `;
+    item.querySelector('.standing-order-toggle').addEventListener('click', () => toggleStandingOrder(p.id));
     item.querySelector('.delete-btn').addEventListener('click', () => deleteFixedPayment(p.id));
     fixedListEl.appendChild(item);
   }

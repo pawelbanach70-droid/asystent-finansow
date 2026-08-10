@@ -341,15 +341,26 @@ input:focus, select:focus {
   color: var(--success);
 }
 
-.standing-order-badge {
+.standing-order-toggle {
   display: inline-block;
-  margin-left: 6px;
+  align-self: flex-start;
+  margin-top: 2px;
   font-size: 0.7rem;
+  background: none;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 1px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.standing-order-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.standing-order-toggle.active {
   background: var(--primary);
   color: white;
-  padding: 1px 6px;
-  border-radius: 999px;
-  vertical-align: middle;
+  border-color: var(--primary);
 }
 
 .pie-chart-wrap {
