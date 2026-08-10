@@ -21,20 +21,29 @@ body {
 }
 
 .app {
-  max-width: 1100px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 24px 16px 64px;
 }
 
 .app main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: 320px minmax(0, 1fr) 320px;
   align-items: start;
   gap: 18px;
 }
 
 .main-col, .side-col {
   min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .app main {
+    grid-template-columns: 1fr 320px;
+  }
+  .side-col:first-child {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 860px) {

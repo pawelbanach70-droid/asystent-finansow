@@ -59,15 +59,7 @@
   </header>
 
   <main>
-   <div class="main-col">
-    <section class="card income-card">
-      <h2>Wypłata w tym miesiącu</h2>
-      <div class="income-row">
-        <input type="number" id="incomeInput" placeholder="np. 5000" step="0.01" min="0">
-        <button id="saveIncomeBtn" class="btn primary">Zapisz</button>
-      </div>
-    </section>
-
+   <aside class="side-col">
     <section class="card">
       <h2>Dodatkowe wpływy</h2>
       <form id="extraIncomeForm" class="fixed-form">
@@ -78,6 +70,16 @@
       </form>
       <div id="extraIncomeList" class="fixed-list"></div>
       <p id="extraIncomeEmptyState" class="empty-state">Brak dodatkowych wpływów w tym miesiącu.</p>
+    </section>
+   </aside>
+
+   <div class="main-col">
+    <section class="card income-card">
+      <h2>Wypłata w tym miesiącu</h2>
+      <div class="income-row">
+        <input type="number" id="incomeInput" placeholder="np. 5000" step="0.01" min="0">
+        <button id="saveIncomeBtn" class="btn primary">Zapisz</button>
+      </div>
     </section>
 
     <section class="card summary-card">
