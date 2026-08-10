@@ -278,14 +278,14 @@ authToggleBtn.addEventListener('click', () => {
   }
 });
 
-function offerToSavePassword(email, password) {
-  if (!window.PasswordCredential || !navigator.credentials) return;
-  try {
-    const cred = new PasswordCredential({ id: email, password, name: email });
-    navigator.credentials.store(cred);
-  } catch (e) {
-    // przegladarka nie wspiera Credential Management API - nic nie robimy,
-    // przegladarka i tak zwykle sama zaproponuje zapisanie hasla
+const REMEMBERED_EMAIL_KEY = 'asystent-finansow-remembered-email';
+const rememberEmailInput = document.getElementById('rememberEmail');
+
+function applyRememberedEmail() {
+  const rememberedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+  if (rememberedEmail) {
+    authEmailInput.value = rememberedEmail;
+    rememberEmailInput.checked = true;
   }
 }
 
@@ -301,7 +301,11 @@ authForm.addEventListener('submit', async (e) => {
     } else {
       await auth.signInWithEmailAndPassword(email, password);
     }
-    offerToSavePassword(email, password);
+    if (rememberEmailInput.checked) {
+      localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+    } else {
+      localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+    }
   } catch (err) {
     authErrorEl.textContent = authErrorMessage(err);
   } finally {
@@ -329,6 +333,7 @@ auth.onAuthStateChanged((user) => {
     authPasswordInput.type = 'password';
     togglePasswordBtn.textContent = '👁️';
     capsLockWarningEl.classList.add('hidden');
+    applyRememberedEmail();
     return;
   }
 
