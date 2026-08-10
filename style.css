@@ -269,3 +269,83 @@ th {
   .summary-grid { grid-template-columns: 1fr; }
   .expense-form { grid-template-columns: 1fr; }
 }
+
+.hidden { display: none !important; }
+
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.auth-card h1 {
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+}
+
+.auth-subtitle {
+  color: var(--muted);
+  margin: 0 0 18px;
+  font-size: 0.9rem;
+}
+
+#authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#authForm input {
+  width: 100%;
+}
+
+#authForm .btn {
+  margin-top: 4px;
+}
+
+.auth-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  min-height: 1.2em;
+  margin: 12px 0 0;
+}
+
+.auth-toggle {
+  margin: 14px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0;
+  margin-left: 4px;
+}
+
+.user-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.btn.ghost {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn.ghost:hover { background: var(--bg); }

@@ -1,4 +1,3 @@
-const STORAGE_KEY = 'asystent-finansow-data';
 const CATEGORY_COLORS = {
   'Jedzenie': '#f59e0b',
   'Rachunki': '#3b82f6',
@@ -41,11 +40,9 @@ const KEYWORD_ICONS = [
 const FALLBACK_ICONS = ['🔹','🔸','✨','🌟','🔖','🧩','🎯','🧿','💠','🔺'];
 const MONTH_NAMES = ['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
 
-let data = loadData();
-data._categoryIcons = data._categoryIcons || {};
-data._categoryColors = data._categoryColors || {};
-data._categories = data._categories || [...DEFAULT_CATEGORIES];
+let data = {};
 let currentMonth = todayKey();
+let currentUser = null;
 
 function getCategoryIcon(name) {
   if (data._categoryIcons[name]) return data._categoryIcons[name];
@@ -86,17 +83,21 @@ function todayKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function loadData() {
+async function loadData(uid) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    const snap = await db.collection('users').doc(uid).get();
+    return snap.exists ? snap.data() : {};
   } catch (e) {
+    console.error('Błąd wczytywania danych:', e);
     return {};
   }
 }
 
 function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  if (!currentUser) return;
+  db.collection('users').doc(currentUser.uid).set(data).catch(e => {
+    console.error('Błąd zapisu danych:', e);
+  });
 }
 
 function getMonthData(key) {
@@ -137,6 +138,93 @@ const expenseTableBody = document.getElementById('expenseTableBody');
 const emptyStateEl = document.getElementById('emptyState');
 const categoryChartEl = document.getElementById('categoryChart');
 const expDateInput = document.getElementById('expDate');
+
+const authScreenEl = document.getElementById('authScreen');
+const appScreenEl = document.getElementById('appScreen');
+const authForm = document.getElementById('authForm');
+const authEmailInput = document.getElementById('authEmail');
+const authPasswordInput = document.getElementById('authPassword');
+const authErrorEl = document.getElementById('authError');
+const authTitleEl = document.getElementById('authTitle');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const authToggleBtn = document.getElementById('authToggleBtn');
+const authToggleTextEl = document.getElementById('authToggleText');
+const userEmailLabelEl = document.getElementById('userEmailLabel');
+
+let authMode = 'login';
+
+const AUTH_ERROR_MESSAGES = {
+  'auth/email-already-in-use': 'Ten adres e-mail jest już zarejestrowany.',
+  'auth/invalid-email': 'Nieprawidłowy adres e-mail.',
+  'auth/weak-password': 'Hasło musi mieć co najmniej 6 znaków.',
+  'auth/user-not-found': 'Nie znaleziono konta o tym adresie e-mail.',
+  'auth/wrong-password': 'Błędne hasło.',
+  'auth/invalid-credential': 'Błędny e-mail lub hasło.',
+  'auth/too-many-requests': 'Zbyt wiele prób. Spróbuj ponownie za chwilę.',
+};
+
+function authErrorMessage(err) {
+  return AUTH_ERROR_MESSAGES[err.code] || 'Wystąpił błąd. Spróbuj ponownie.';
+}
+
+authToggleBtn.addEventListener('click', () => {
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  authErrorEl.textContent = '';
+  if (authMode === 'signup') {
+    authTitleEl.textContent = 'Załóż nowe konto';
+    authSubmitBtn.textContent = 'Zarejestruj się';
+    authToggleTextEl.textContent = 'Masz już konto?';
+    authToggleBtn.textContent = 'Zaloguj się';
+  } else {
+    authTitleEl.textContent = 'Zaloguj się do swojego konta';
+    authSubmitBtn.textContent = 'Zaloguj się';
+    authToggleTextEl.textContent = 'Nie masz konta?';
+    authToggleBtn.textContent = 'Zarejestruj się';
+  }
+});
+
+authForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  authErrorEl.textContent = '';
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value;
+  authSubmitBtn.disabled = true;
+  try {
+    if (authMode === 'signup') {
+      await auth.createUserWithEmailAndPassword(email, password);
+    } else {
+      await auth.signInWithEmailAndPassword(email, password);
+    }
+  } catch (err) {
+    authErrorEl.textContent = authErrorMessage(err);
+  } finally {
+    authSubmitBtn.disabled = false;
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  auth.signOut();
+});
+
+auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    currentUser = null;
+    appScreenEl.classList.add('hidden');
+    authScreenEl.classList.remove('hidden');
+    authForm.reset();
+    return;
+  }
+  currentUser = user;
+  userEmailLabelEl.textContent = user.email;
+  data = await loadData(user.uid);
+  data._categoryIcons = data._categoryIcons || {};
+  data._categoryColors = data._categoryColors || {};
+  data._categories = data._categories || [...DEFAULT_CATEGORIES];
+  currentMonth = todayKey();
+  authScreenEl.classList.add('hidden');
+  appScreenEl.classList.remove('hidden');
+  render();
+});
 
 document.getElementById('prevMonth').addEventListener('click', () => {
   currentMonth = shiftMonth(currentMonth, -1);
@@ -300,5 +388,3 @@ function exportExcelReport() {
 
   XLSX.writeFile(wb, `raport-finansowy-${currentMonth}.xlsx`);
 }
-
-render();
