@@ -150,6 +150,24 @@ const authSubmitBtn = document.getElementById('authSubmitBtn');
 const authToggleBtn = document.getElementById('authToggleBtn');
 const authToggleTextEl = document.getElementById('authToggleText');
 const userEmailLabelEl = document.getElementById('userEmailLabel');
+const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+const capsLockWarningEl = document.getElementById('capsLockWarning');
+
+togglePasswordBtn.addEventListener('click', () => {
+  const showing = authPasswordInput.type === 'text';
+  authPasswordInput.type = showing ? 'password' : 'text';
+  togglePasswordBtn.textContent = showing ? '👁️' : '🙈';
+  togglePasswordBtn.title = showing ? 'Pokaż hasło' : 'Ukryj hasło';
+  togglePasswordBtn.setAttribute('aria-label', togglePasswordBtn.title);
+});
+
+function checkCapsLock(e) {
+  const isOn = e.getModifierState && e.getModifierState('CapsLock');
+  capsLockWarningEl.classList.toggle('hidden', !isOn);
+}
+authPasswordInput.addEventListener('keydown', checkCapsLock);
+authPasswordInput.addEventListener('keyup', checkCapsLock);
+authPasswordInput.addEventListener('blur', () => capsLockWarningEl.classList.add('hidden'));
 
 let authMode = 'login';
 
@@ -212,6 +230,9 @@ auth.onAuthStateChanged(async (user) => {
     appScreenEl.classList.add('hidden');
     authScreenEl.classList.remove('hidden');
     authForm.reset();
+    authPasswordInput.type = 'password';
+    togglePasswordBtn.textContent = '👁️';
+    capsLockWarningEl.classList.add('hidden');
     return;
   }
   currentUser = user;

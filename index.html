@@ -14,7 +14,11 @@
     <p id="authTitle" class="auth-subtitle">Zaloguj się do swojego konta</p>
     <form id="authForm">
       <input type="email" id="authEmail" placeholder="E-mail" autocomplete="email" required>
-      <input type="password" id="authPassword" placeholder="Hasło" autocomplete="current-password" required minlength="6">
+      <div class="password-field">
+        <input type="password" id="authPassword" placeholder="Hasło" autocomplete="current-password" required minlength="6">
+        <button type="button" id="togglePasswordBtn" class="password-toggle-btn" title="Pokaż hasło" aria-label="Pokaż hasło">👁️</button>
+      </div>
+      <p id="capsLockWarning" class="caps-lock-warning hidden">⚠️ Włączony Caps Lock</p>
       <button type="submit" id="authSubmitBtn" class="btn primary">Zaloguj się</button>
     </form>
     <p id="authError" class="auth-error"></p>
