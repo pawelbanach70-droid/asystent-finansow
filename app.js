@@ -142,30 +142,54 @@ function shiftMonth(key, delta) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-// ---- Motyw (jasny/ciemny) ----
+// ---- Motyw (paleta kolorów) ----
 const themeToggleBtn = document.getElementById('themeToggleBtn');
+const themePanelEl = document.getElementById('themePanel');
 
-function getEffectiveTheme() {
-  const explicit = document.documentElement.getAttribute('data-theme');
-  if (explicit) return explicit;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+function getCurrentThemeKey() {
+  return document.documentElement.getAttribute('data-theme') || 'light';
 }
 
-function applyThemeIcon() {
-  const effective = getEffectiveTheme();
-  themeToggleBtn.textContent = effective === 'dark' ? '☀️' : '🌙';
-  themeToggleBtn.title = effective === 'dark' ? 'Przełącz na jasny motyw' : 'Przełącz na ciemny motyw';
-  themeToggleBtn.setAttribute('aria-label', themeToggleBtn.title);
+function applyTheme(key) {
+  const theme = window.THEMES[key] || window.THEMES.light;
+  for (const cssVar in theme.vars) {
+    document.documentElement.style.setProperty(cssVar, theme.vars[cssVar]);
+  }
+  document.documentElement.setAttribute('data-theme', key);
+  localStorage.setItem('asystent-finansow-theme', key);
+  renderThemePanel();
+}
+
+function renderThemePanel() {
+  const current = getCurrentThemeKey();
+  themePanelEl.innerHTML = '';
+  for (const key in window.THEMES) {
+    const theme = window.THEMES[key];
+    const swatch = document.createElement('button');
+    swatch.type = 'button';
+    swatch.className = 'theme-swatch' + (key === current ? ' active' : '');
+    swatch.style.background = theme.swatch;
+    swatch.title = theme.name;
+    swatch.setAttribute('aria-label', theme.name);
+    swatch.addEventListener('click', () => applyTheme(key));
+    themePanelEl.appendChild(swatch);
+  }
 }
 
 themeToggleBtn.addEventListener('click', () => {
-  const next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('asystent-finansow-theme', next);
-  applyThemeIcon();
+  const willOpen = themePanelEl.classList.contains('hidden');
+  themePanelEl.classList.toggle('hidden');
+  themeToggleBtn.setAttribute('aria-expanded', String(willOpen));
 });
 
-applyThemeIcon();
+document.addEventListener('click', (e) => {
+  if (!themePanelEl.classList.contains('hidden') && !themePanelEl.contains(e.target) && e.target !== themeToggleBtn) {
+    themePanelEl.classList.add('hidden');
+    themeToggleBtn.setAttribute('aria-expanded', 'false');
+  }
+});
+
+renderThemePanel();
 
 // ---- DOM refs ----
 const monthLabelEl = document.getElementById('monthLabel');

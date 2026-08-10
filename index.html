@@ -5,18 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Asystent Finansów</title>
 <link rel="stylesheet" href="style.css">
+<script src="themes.js"></script>
 <script>
 (function () {
-  var saved = localStorage.getItem('asystent-finansow-theme');
-  if (saved === 'light' || saved === 'dark') {
-    document.documentElement.setAttribute('data-theme', saved);
-  }
+  var saved = localStorage.getItem('asystent-finansow-theme') || 'light';
+  var theme = window.THEMES[saved] || window.THEMES.light;
+  var root = document.documentElement.style;
+  for (var k in theme.vars) root.setProperty(k, theme.vars[k]);
+  document.documentElement.setAttribute('data-theme', saved);
 })();
 </script>
 </head>
 <body>
 
-<button id="themeToggleBtn" class="theme-toggle-fixed" title="Zmień motyw" aria-label="Zmień motyw">🌙</button>
+<div class="theme-picker">
+  <button id="themeToggleBtn" class="theme-toggle-fixed" title="Zmień motyw" aria-label="Zmień motyw" aria-expanded="false">🎨</button>
+  <div id="themePanel" class="theme-panel hidden"></div>
+</div>
 
 <div id="authScreen" class="auth-wrap">
   <div class="card auth-card">
