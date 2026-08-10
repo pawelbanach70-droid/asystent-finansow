@@ -196,6 +196,7 @@ const sumRemainingEl = document.getElementById('sumRemaining');
 const progressFillEl = document.getElementById('progressFill');
 const expenseForm = document.getElementById('expenseForm');
 const expenseTableBody = document.getElementById('expenseTableBody');
+const upcomingBannerEl = document.getElementById('upcomingBanner');
 const expenseSearchInput = document.getElementById('expenseSearch');
 expenseSearchInput.addEventListener('input', () => {
   expenseSearchQuery = expenseSearchInput.value;
@@ -627,6 +628,36 @@ function saveEditFixed(id, title, amount, date, standingOrder) {
   render();
 }
 
+function daysUntilNextOccurrence(dayOfMonth) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let target = new Date(today.getFullYear(), today.getMonth(), dayOfMonth);
+  if (target < today) {
+    target = new Date(today.getFullYear(), today.getMonth() + 1, dayOfMonth);
+  }
+  return Math.round((target - today) / 86400000);
+}
+
+function renderUpcomingBanner() {
+  const upcoming = data._fixedPayments
+    .map(p => ({ p, days: daysUntilNextOccurrence(parseInt(p.date.split('-')[2], 10)) }))
+    .filter(x => x.days >= 0 && x.days <= 3)
+    .sort((a, b) => a.days - b.days);
+
+  if (!upcoming.length) {
+    upcomingBannerEl.classList.add('hidden');
+    upcomingBannerEl.textContent = '';
+    return;
+  }
+
+  const parts = upcoming.map(({ p, days }) => {
+    const when = days === 0 ? 'dziś' : days === 1 ? 'jutro' : `za ${days} dni`;
+    return `${p.title} (${when}, ${formatMoney(p.amount)})`;
+  });
+  upcomingBannerEl.textContent = `⏰ Zbliżają się: ${parts.join(', ')}`;
+  upcomingBannerEl.classList.remove('hidden');
+}
+
 function renderFixedList() {
   const payments = [...data._fixedPayments].sort((a, b) => a.date.localeCompare(b.date));
   fixedListEl.innerHTML = '';
@@ -847,6 +878,7 @@ function render() {
   progressFillEl.style.width = pct + '%';
   progressFillEl.classList.toggle('over', remaining < 0);
 
+  renderUpcomingBanner();
   renderFixedList();
   renderExtraIncomeList();
   renderPieChart();

@@ -453,6 +453,17 @@ input:focus, select:focus {
 
 .section-header h2 { margin: 0; }
 
+.upcoming-banner {
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid #d97706;
+  color: #d97706;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .expense-search {
   width: 100%;
   margin-bottom: 12px;
