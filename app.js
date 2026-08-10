@@ -106,6 +106,10 @@ function getMonthData(key) {
   return data[key];
 }
 
+function round2(n) {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
 function formatMoney(n) {
   return n.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
 }
@@ -267,9 +271,9 @@ function exportExcelReport() {
   const summaryRows = [
     ['Raport finansowy', monthLabel(currentMonth)],
     [],
-    ['Wypłata', month.income || 0],
-    ['Suma wydatków', totalExpenses],
-    ['Pozostało', remaining],
+    ['Wypłata', round2(month.income || 0)],
+    ['Suma wydatków', round2(totalExpenses)],
+    ['Pozostało', round2(remaining)],
     ['% wypłaty wydane', month.income > 0 ? ((totalExpenses / month.income) * 100).toFixed(1) + '%' : 'n/d'],
   ];
   const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
@@ -279,7 +283,7 @@ function exportExcelReport() {
   const categoryRows = [['Kategoria', 'Suma', '% wydatków']];
   const catSorted = Object.keys(byCategory).sort((a, b) => byCategory[b] - byCategory[a]);
   for (const cat of catSorted) {
-    categoryRows.push([`${getCategoryIcon(cat)} ${cat}`, byCategory[cat], totalExpenses > 0 ? ((byCategory[cat] / totalExpenses) * 100).toFixed(1) + '%' : '0%']);
+    categoryRows.push([`${getCategoryIcon(cat)} ${cat}`, round2(byCategory[cat]), totalExpenses > 0 ? ((byCategory[cat] / totalExpenses) * 100).toFixed(1) + '%' : '0%']);
   }
   const categoryWs = XLSX.utils.aoa_to_sheet(categoryRows);
   categoryWs['!cols'] = [{ wch: 16 }, { wch: 12 }, { wch: 12 }];
@@ -288,7 +292,7 @@ function exportExcelReport() {
   const expenseRows = [['Data', 'Kategoria', 'Opis', 'Kwota']];
   const sortedExpenses = [...month.expenses].sort((a, b) => a.date.localeCompare(b.date));
   for (const exp of sortedExpenses) {
-    expenseRows.push([exp.date, `${getCategoryIcon(exp.category)} ${exp.category}`, exp.desc || '', exp.amount]);
+    expenseRows.push([exp.date, `${getCategoryIcon(exp.category)} ${exp.category}`, exp.desc || '', round2(exp.amount)]);
   }
   const expenseWs = XLSX.utils.aoa_to_sheet(expenseRows);
   expenseWs['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 30 }, { wch: 12 }];
