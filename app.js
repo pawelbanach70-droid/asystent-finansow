@@ -99,16 +99,6 @@ function todayKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-async function loadData(uid) {
-  try {
-    const snap = await db.collection('users').doc(uid).get();
-    return snap.exists ? snap.data() : {};
-  } catch (e) {
-    console.error('Błąd wczytywania danych:', e);
-    return {};
-  }
-}
-
 function saveData() {
   if (!currentUser) return;
   db.collection('users').doc(currentUser.uid).set(data).catch(e => {
@@ -309,7 +299,14 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   auth.signOut();
 });
 
-auth.onAuthStateChanged(async (user) => {
+let unsubscribeDataListener = null;
+
+auth.onAuthStateChanged((user) => {
+  if (unsubscribeDataListener) {
+    unsubscribeDataListener();
+    unsubscribeDataListener = null;
+  }
+
   if (!user) {
     currentUser = null;
     appScreenEl.classList.add('hidden');
@@ -320,17 +317,25 @@ auth.onAuthStateChanged(async (user) => {
     capsLockWarningEl.classList.add('hidden');
     return;
   }
+
   currentUser = user;
   userEmailLabelEl.textContent = user.email;
-  data = await loadData(user.uid);
-  data._categoryIcons = data._categoryIcons || {};
-  data._categoryColors = data._categoryColors || {};
-  data._categories = data._categories || [...DEFAULT_CATEGORIES];
-  data._fixedPayments = data._fixedPayments || [];
   currentMonth = todayKey();
   authScreenEl.classList.add('hidden');
   appScreenEl.classList.remove('hidden');
-  render();
+
+  // Nasluchujemy na zywo, zeby zmiany z innego urzadzenia (np. telefonu)
+  // od razu pojawialy sie tutaj, zamiast zostac nadpisane przez stare dane w pamieci.
+  unsubscribeDataListener = db.collection('users').doc(user.uid).onSnapshot((snap) => {
+    data = snap.exists ? snap.data() : {};
+    data._categoryIcons = data._categoryIcons || {};
+    data._categoryColors = data._categoryColors || {};
+    data._categories = data._categories || [...DEFAULT_CATEGORIES];
+    data._fixedPayments = data._fixedPayments || [];
+    render();
+  }, (err) => {
+    console.error('Błąd synchronizacji danych:', err);
+  });
 });
 
 document.getElementById('prevMonth').addEventListener('click', () => {
