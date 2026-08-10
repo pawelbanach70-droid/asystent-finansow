@@ -528,16 +528,45 @@ th {
 
 .category-row {
   display: grid;
-  grid-template-columns: 130px 1fr auto;
+  grid-template-columns: 160px 1fr auto;
   align-items: center;
   gap: 12px;
   font-size: 0.85rem;
 }
 
 .category-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.budget-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  white-space: nowrap;
+}
+.budget-btn:hover { color: var(--primary); }
+
+.budget-warning {
+  font-size: 0.8rem;
+  cursor: help;
+}
+
+.budget-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.budget-input {
+  width: 90px;
 }
 
 .category-bar-bg {

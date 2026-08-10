@@ -46,6 +46,7 @@ let currentUser = null;
 let editingExpenseId = null;
 let editingFixedId = null;
 let editingExtraId = null;
+let editingBudgetCategory = null;
 
 function getCategoryIcon(name) {
   if (data._categoryIcons[name]) return data._categoryIcons[name];
@@ -391,6 +392,7 @@ auth.onAuthStateChanged((user) => {
     data._categoryColors = data._categoryColors || {};
     data._categories = data._categories || [...DEFAULT_CATEGORIES];
     data._fixedPayments = data._fixedPayments || [];
+    data._categoryBudgets = data._categoryBudgets || {};
     render();
   }, (err) => {
     console.error('Błąd synchronizacji danych:', err);
@@ -822,16 +824,49 @@ function render() {
   } else {
     for (const { label, total } of grouped) {
       const pct = totalExpenses > 0 ? Math.round((total / totalExpenses) * 100) : 0;
+      const budget = data._categoryBudgets[label];
+      const overBudget = budget && total > budget;
       const row = document.createElement('div');
       row.className = 'category-row';
-      row.innerHTML = `
-        <span class="category-name">${getCategoryIcon(label)} ${label}</span>
-        <span class="category-bar-bg"><span class="category-bar-fill" style="width:${(total / maxVal) * 100}%;background:${getCategoryColor(label)}"></span></span>
-        <span class="category-amount">${formatMoney(total)}<span class="category-percent">(${pct}%)</span></span>
-      `;
+      if (label === editingBudgetCategory) {
+        row.innerHTML = `
+          <span class="category-name">${getCategoryIcon(label)} ${label}</span>
+          <span class="budget-edit-row">
+            <input type="number" step="1" min="0" class="edit-input budget-input" placeholder="Limit zł" value="${budget || ''}">
+            <button class="save-edit-btn" title="Zapisz">✓</button>
+            <button class="cancel-edit-btn" title="Anuluj">✕</button>
+          </span>
+        `;
+        const budgetInput = row.querySelector('.budget-input');
+        row.querySelector('.save-edit-btn').addEventListener('click', () => saveBudget(label, budgetInput.value));
+        row.querySelector('.cancel-edit-btn').addEventListener('click', () => { editingBudgetCategory = null; render(); });
+      } else {
+        row.innerHTML = `
+          <span class="category-name">
+            ${getCategoryIcon(label)} ${label}
+            ${overBudget ? `<span class="budget-warning" title="Przekroczono limit ${formatMoney(budget)}">⚠️</span>` : ''}
+            <button type="button" class="budget-btn" title="${budget ? 'Zmień limit' : 'Ustaw limit'}">🎯${budget ? ` ${formatMoney(budget)}` : ''}</button>
+          </span>
+          <span class="category-bar-bg"><span class="category-bar-fill" style="width:${(total / maxVal) * 100}%;background:${overBudget ? 'var(--danger)' : getCategoryColor(label)}"></span></span>
+          <span class="category-amount">${formatMoney(total)}<span class="category-percent">(${pct}%)</span></span>
+        `;
+        row.querySelector('.budget-btn').addEventListener('click', () => { editingBudgetCategory = label; render(); });
+      }
       categoryChartEl.appendChild(row);
     }
   }
+}
+
+function saveBudget(category, rawValue) {
+  const value = parseFloat(rawValue);
+  if (rawValue === '' || isNaN(value) || value <= 0) {
+    delete data._categoryBudgets[category];
+  } else {
+    data._categoryBudgets[category] = value;
+  }
+  editingBudgetCategory = null;
+  saveData();
+  render();
 }
 
 function exportExcelReport() {
