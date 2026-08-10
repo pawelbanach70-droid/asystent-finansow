@@ -47,6 +47,7 @@ let editingExpenseId = null;
 let editingFixedId = null;
 let editingExtraId = null;
 let editingBudgetCategory = null;
+let expenseSearchQuery = '';
 
 function getCategoryIcon(name) {
   if (data._categoryIcons[name]) return data._categoryIcons[name];
@@ -195,6 +196,11 @@ const sumRemainingEl = document.getElementById('sumRemaining');
 const progressFillEl = document.getElementById('progressFill');
 const expenseForm = document.getElementById('expenseForm');
 const expenseTableBody = document.getElementById('expenseTableBody');
+const expenseSearchInput = document.getElementById('expenseSearch');
+expenseSearchInput.addEventListener('input', () => {
+  expenseSearchQuery = expenseSearchInput.value;
+  render();
+});
 const emptyStateEl = document.getElementById('emptyState');
 const categoryChartEl = document.getElementById('categoryChart');
 const expDateInput = document.getElementById('expDate');
@@ -847,9 +853,14 @@ function render() {
   renderTrendChart();
 
   // table
-  const sorted = [...month.expenses].sort((a, b) => b.date.localeCompare(a.date));
+  const query = expenseSearchQuery.trim().toLowerCase();
+  const filtered = query
+    ? month.expenses.filter(e => e.category.toLowerCase().includes(query) || (e.desc || '').toLowerCase().includes(query))
+    : month.expenses;
+  const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
   expenseTableBody.innerHTML = '';
   emptyStateEl.style.display = sorted.length ? 'none' : 'block';
+  emptyStateEl.textContent = query && !sorted.length ? 'Brak wydatków pasujących do wyszukiwania.' : 'Brak wydatków w tym miesiącu.';
   for (const exp of sorted) {
     const tr = document.createElement('tr');
     if (exp.id === editingExpenseId) {

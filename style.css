@@ -453,6 +453,11 @@ input:focus, select:focus {
 
 .section-header h2 { margin: 0; }
 
+.expense-search {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
