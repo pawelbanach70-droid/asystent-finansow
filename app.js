@@ -1,3 +1,11 @@
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch((err) => {
+      console.warn('Rejestracja service workera nie powiodla sie:', err);
+    });
+  });
+}
+
 const CATEGORY_COLORS = {
   'Jedzenie': '#f59e0b',
   'Rachunki': '#3b82f6',

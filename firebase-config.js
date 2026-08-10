@@ -12,3 +12,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+
+// Wlacza trwaly cache danych (IndexedDB), zeby aplikacja dzialala tez bez internetu -
+// dane widoczne/edytowalne offline, zmiany synchronizuja sie automatycznie po powrocie polaczenia.
+db.enablePersistence().catch((err) => {
+  console.warn('Tryb offline niedostepny w tej przegladarce/karcie:', err.code);
+});
