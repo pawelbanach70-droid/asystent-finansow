@@ -230,6 +230,9 @@ const authToggleTextEl = document.getElementById('authToggleText');
 const userEmailLabelEl = document.getElementById('userEmailLabel');
 const togglePasswordBtn = document.getElementById('togglePasswordBtn');
 const capsLockWarningEl = document.getElementById('capsLockWarning');
+const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+const forgotPasswordRow = document.getElementById('forgotPasswordRow');
+const authInfoEl = document.getElementById('authInfo');
 
 togglePasswordBtn.addEventListener('click', () => {
   const showing = authPasswordInput.type === 'text';
@@ -266,19 +269,53 @@ function authErrorMessage(err) {
 authToggleBtn.addEventListener('click', () => {
   authMode = authMode === 'login' ? 'signup' : 'login';
   authErrorEl.textContent = '';
+  authInfoEl.classList.add('hidden');
   if (authMode === 'signup') {
     authTitleEl.textContent = 'Załóż nowe konto';
     authSubmitBtn.textContent = 'Zarejestruj się';
     authToggleTextEl.textContent = 'Masz już konto?';
     authToggleBtn.textContent = 'Zaloguj się';
     authPasswordInput.autocomplete = 'new-password';
+    forgotPasswordRow.classList.add('hidden');
   } else {
     authTitleEl.textContent = 'Zaloguj się do swojego konta';
     authSubmitBtn.textContent = 'Zaloguj się';
     authToggleTextEl.textContent = 'Nie masz konta?';
     authToggleBtn.textContent = 'Zarejestruj się';
     authPasswordInput.autocomplete = 'current-password';
+    forgotPasswordRow.classList.remove('hidden');
   }
+});
+
+forgotPasswordBtn.addEventListener('click', async () => {
+  authErrorEl.textContent = '';
+  authInfoEl.classList.add('hidden');
+  const email = authEmailInput.value.trim();
+  if (!email) {
+    authErrorEl.textContent = 'Wpisz najpierw swój adres e-mail powyżej.';
+    return;
+  }
+  forgotPasswordBtn.disabled = true;
+  let invalidEmail = false;
+  try {
+    await auth.sendPasswordResetEmail(email);
+  } catch (err) {
+    // Celowo NIE rozroznamy "nie ma takiego konta" od sukcesu - inaczej ktos
+    // mógłby sprawdzac, które adresy e-mail maja tu konto (account enumeration).
+    if (err.code === 'auth/invalid-email') {
+      invalidEmail = true;
+    } else if (err.code !== 'auth/user-not-found') {
+      console.error('Błąd resetu hasła:', err);
+    }
+  } finally {
+    forgotPasswordBtn.disabled = false;
+  }
+  if (invalidEmail) {
+    authErrorEl.textContent = 'Nieprawidłowy adres e-mail.';
+    return;
+  }
+  authInfoEl.textContent = 'Jeśli konto o tym adresie istnieje, wysłaliśmy e-mail z linkiem do resetu hasła.';
+  authInfoEl.classList.remove('hidden');
 });
 
 const REMEMBERED_EMAIL_KEY = 'asystent-finansow-remembered-email';

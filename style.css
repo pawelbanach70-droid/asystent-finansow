@@ -653,6 +653,12 @@ th {
   margin: 12px 0 0;
 }
 
+.auth-info {
+  color: var(--success);
+  font-size: 0.85rem;
+  margin: 12px 0 0;
+}
+
 .auth-toggle {
   margin: 14px 0 0;
   font-size: 0.85rem;
