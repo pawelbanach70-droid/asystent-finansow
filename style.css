@@ -50,6 +50,15 @@ body {
   .app main {
     grid-template-columns: 1fr;
   }
+  /* Na telefonie najpierw glowna tresc (wyplata, przychody, wydatki),
+     a dopiero potem panele boczne - kolejnosc w HTML zostaje bez zmian,
+     wiec widok na komputerze jest nietkniety. */
+  .main-col {
+    order: 1;
+  }
+  .side-col {
+    order: 2;
+  }
 }
 
 .topbar {
