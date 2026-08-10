@@ -220,6 +220,10 @@ const fixedStandingOrderInput = document.getElementById('fixedStandingOrder');
 const fixedListEl = document.getElementById('fixedList');
 const fixedEmptyStateEl = document.getElementById('fixedEmptyState');
 
+const pieChartEl = document.getElementById('pieChart');
+const pieLegendEl = document.getElementById('pieLegend');
+const pieEmptyStateEl = document.getElementById('pieEmptyState');
+
 const authScreenEl = document.getElementById('authScreen');
 const appScreenEl = document.getElementById('appScreen');
 const authForm = document.getElementById('authForm');
@@ -466,6 +470,78 @@ function renderFixedList() {
   }
 }
 
+function polarToCartesian(cx, cy, r, angleDeg) {
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function describeArc(cx, cy, r, startAngle, endAngle) {
+  const start = polarToCartesian(cx, cy, r, endAngle);
+  const end = polarToCartesian(cx, cy, r, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+  return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y} Z`;
+}
+
+function renderPieChart() {
+  const month = getMonthData(currentMonth);
+  const catSlices = groupByCategory(month.expenses).map(g => ({
+    label: g.label, amount: g.total, color: getCategoryColor(g.label)
+  }));
+  const fixedSlices = data._fixedPayments.map(p => ({
+    label: p.title, amount: p.amount, color: getCategoryColor(p.title)
+  }));
+  const slices = [...catSlices, ...fixedSlices].sort((a, b) => b.amount - a.amount);
+  const total = slices.reduce((s, x) => s + x.amount, 0);
+
+  pieChartEl.innerHTML = '';
+  pieLegendEl.innerHTML = '';
+  pieEmptyStateEl.style.display = slices.length ? 'none' : 'block';
+  if (!slices.length) return;
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const cx = 100, cy = 100, r = 90;
+  let angle = 0;
+  for (const slice of slices) {
+    const sliceAngle = (slice.amount / total) * 360;
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', describeArc(cx, cy, r, angle, angle + Math.max(sliceAngle, 0.01)));
+    path.setAttribute('fill', slice.color);
+    const titleEl = document.createElementNS(svgNS, 'title');
+    titleEl.textContent = `${slice.label}: ${formatMoney(slice.amount)}`;
+    path.appendChild(titleEl);
+    pieChartEl.appendChild(path);
+    angle += sliceAngle;
+  }
+
+  const hole = document.createElementNS(svgNS, 'circle');
+  hole.setAttribute('cx', cx);
+  hole.setAttribute('cy', cy);
+  hole.setAttribute('r', 45);
+  hole.setAttribute('class', 'pie-donut-hole');
+  pieChartEl.appendChild(hole);
+
+  const centerText = document.createElementNS(svgNS, 'text');
+  centerText.setAttribute('x', cx);
+  centerText.setAttribute('y', cy);
+  centerText.setAttribute('text-anchor', 'middle');
+  centerText.setAttribute('dominant-baseline', 'middle');
+  centerText.setAttribute('class', 'pie-center-label');
+  centerText.textContent = formatMoney(total);
+  pieChartEl.appendChild(centerText);
+
+  for (const slice of slices) {
+    const pct = total > 0 ? Math.round((slice.amount / total) * 100) : 0;
+    const item = document.createElement('div');
+    item.className = 'pie-legend-item';
+    item.innerHTML = `
+      <span class="pie-legend-swatch" style="background:${slice.color}"></span>
+      <span class="pie-legend-label">${slice.label}</span>
+      <span class="pie-legend-value">${formatMoney(slice.amount)} (${pct}%)</span>
+    `;
+    pieLegendEl.appendChild(item);
+  }
+}
+
 const categoryListEl = document.getElementById('categoryList');
 
 function renderCategoryDatalist() {
@@ -500,6 +576,7 @@ function render() {
 
   renderFixedList();
   renderExtraIncomeList();
+  renderPieChart();
 
   // table
   const sorted = [...month.expenses].sort((a, b) => b.date.localeCompare(a.date));
