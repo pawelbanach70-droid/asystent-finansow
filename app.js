@@ -204,6 +204,14 @@ const emptyStateEl = document.getElementById('emptyState');
 const categoryChartEl = document.getElementById('categoryChart');
 const expDateInput = document.getElementById('expDate');
 
+const fixedForm = document.getElementById('fixedForm');
+const fixedTitleInput = document.getElementById('fixedTitle');
+const fixedAmountInput = document.getElementById('fixedAmount');
+const fixedDateInput = document.getElementById('fixedDate');
+const fixedStandingOrderInput = document.getElementById('fixedStandingOrder');
+const fixedListEl = document.getElementById('fixedList');
+const fixedEmptyStateEl = document.getElementById('fixedEmptyState');
+
 const authScreenEl = document.getElementById('authScreen');
 const appScreenEl = document.getElementById('appScreen');
 const authForm = document.getElementById('authForm');
@@ -306,6 +314,7 @@ auth.onAuthStateChanged(async (user) => {
   data._categoryIcons = data._categoryIcons || {};
   data._categoryColors = data._categoryColors || {};
   data._categories = data._categories || [...DEFAULT_CATEGORIES];
+  data._fixedPayments = data._fixedPayments || [];
   currentMonth = todayKey();
   authScreenEl.classList.add('hidden');
   appScreenEl.classList.remove('hidden');
@@ -360,6 +369,50 @@ function deleteExpense(id) {
   render();
 }
 
+fixedForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const title = fixedTitleInput.value.trim();
+  const amount = parseFloat(fixedAmountInput.value);
+  const date = fixedDateInput.value;
+  const standingOrder = fixedStandingOrderInput.checked;
+  if (!title || isNaN(amount) || amount <= 0 || !date) return;
+
+  data._fixedPayments.push({ id: Date.now(), title, amount, date, standingOrder });
+  saveData();
+
+  fixedTitleInput.value = '';
+  fixedAmountInput.value = '';
+  fixedDateInput.value = '';
+  fixedStandingOrderInput.checked = false;
+  render();
+});
+
+function deleteFixedPayment(id) {
+  data._fixedPayments = data._fixedPayments.filter(p => p.id !== id);
+  saveData();
+  render();
+}
+
+function renderFixedList() {
+  const payments = [...data._fixedPayments].sort((a, b) => a.date.localeCompare(b.date));
+  fixedListEl.innerHTML = '';
+  fixedEmptyStateEl.style.display = payments.length ? 'none' : 'block';
+  for (const p of payments) {
+    const item = document.createElement('div');
+    item.className = 'fixed-item';
+    item.innerHTML = `
+      <div class="fixed-item-main">
+        <span class="fixed-item-title">${p.title}${p.standingOrder ? '<span class="standing-order-badge">zlecenie stałe</span>' : ''}</span>
+        <span class="fixed-item-meta">${p.date}</span>
+      </div>
+      <span class="fixed-item-amount">${formatMoney(p.amount)}</span>
+      <button class="delete-btn" title="Usuń">✕</button>
+    `;
+    item.querySelector('.delete-btn').addEventListener('click', () => deleteFixedPayment(p.id));
+    fixedListEl.appendChild(item);
+  }
+}
+
 const categoryListEl = document.getElementById('categoryList');
 
 function renderCategoryDatalist() {
@@ -377,16 +430,20 @@ function render() {
   incomeInput.value = month.income || '';
 
   const totalExpenses = month.expenses.reduce((s, e) => s + e.amount, 0);
-  const remaining = (month.income || 0) - totalExpenses;
+  const totalFixed = data._fixedPayments.reduce((s, p) => s + p.amount, 0);
+  const totalOut = totalExpenses + totalFixed;
+  const remaining = (month.income || 0) - totalOut;
 
   sumIncomeEl.textContent = formatMoney(month.income || 0);
-  sumExpensesEl.textContent = formatMoney(totalExpenses);
+  sumExpensesEl.textContent = formatMoney(totalOut);
   sumRemainingEl.textContent = formatMoney(remaining);
   sumRemainingEl.classList.toggle('negative', remaining < 0);
 
-  const pct = month.income > 0 ? Math.min(100, (totalExpenses / month.income) * 100) : 0;
+  const pct = month.income > 0 ? Math.min(100, (totalOut / month.income) * 100) : 0;
   progressFillEl.style.width = pct + '%';
   progressFillEl.classList.toggle('over', remaining < 0);
+
+  renderFixedList();
 
   // table
   const sorted = [...month.expenses].sort((a, b) => b.date.localeCompare(a.date));
@@ -429,7 +486,9 @@ function render() {
 function exportExcelReport() {
   const month = getMonthData(currentMonth);
   const totalExpenses = month.expenses.reduce((s, e) => s + e.amount, 0);
-  const remaining = (month.income || 0) - totalExpenses;
+  const totalFixed = data._fixedPayments.reduce((s, p) => s + p.amount, 0);
+  const totalOut = totalExpenses + totalFixed;
+  const remaining = (month.income || 0) - totalOut;
 
   const grouped = groupByCategory(month.expenses);
 
@@ -439,9 +498,11 @@ function exportExcelReport() {
     ['Raport finansowy', monthLabel(currentMonth)],
     [],
     ['Wypłata', round2(month.income || 0)],
-    ['Suma wydatków', round2(totalExpenses)],
+    ['Wydatki jednorazowe', round2(totalExpenses)],
+    ['Stałe opłaty', round2(totalFixed)],
+    ['Suma wydatków', round2(totalOut)],
     ['Pozostało', round2(remaining)],
-    ['% wypłaty wydane', month.income > 0 ? ((totalExpenses / month.income) * 100).toFixed(1) + '%' : 'n/d'],
+    ['% wypłaty wydane', month.income > 0 ? ((totalOut / month.income) * 100).toFixed(1) + '%' : 'n/d'],
   ];
   const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
   summaryWs['!cols'] = [{ wch: 22 }, { wch: 18 }];
@@ -463,6 +524,15 @@ function exportExcelReport() {
   const expenseWs = XLSX.utils.aoa_to_sheet(expenseRows);
   expenseWs['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 30 }, { wch: 12 }];
   XLSX.utils.book_append_sheet(wb, expenseWs, 'Wydatki');
+
+  const fixedRows = [['Tytuł', 'Kwota', 'Data pobrania', 'Stałe zlecenie']];
+  const sortedFixed = [...data._fixedPayments].sort((a, b) => a.date.localeCompare(b.date));
+  for (const p of sortedFixed) {
+    fixedRows.push([p.title, round2(p.amount), p.date, p.standingOrder ? 'Tak' : 'Nie']);
+  }
+  const fixedWs = XLSX.utils.aoa_to_sheet(fixedRows);
+  fixedWs['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 14 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, fixedWs, 'Stałe opłaty');
 
   XLSX.writeFile(wb, `raport-finansowy-${currentMonth}.xlsx`);
 }

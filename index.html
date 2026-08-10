@@ -59,6 +59,7 @@
   </header>
 
   <main>
+   <div class="main-col">
     <section class="card income-card">
       <h2>Wypłata w tym miesiącu</h2>
       <div class="income-row">
@@ -119,6 +120,25 @@
         <p id="emptyState" class="empty-state">Brak wydatków w tym miesiącu.</p>
       </div>
     </section>
+   </div>
+
+   <aside class="side-col">
+    <section class="card">
+      <h2>Stałe opłaty</h2>
+      <form id="fixedForm" class="fixed-form">
+        <input type="text" id="fixedTitle" placeholder="Tytuł (np. Czynsz)" required>
+        <input type="number" id="fixedAmount" placeholder="Kwota (zł)" step="0.01" min="0.01" required>
+        <input type="date" id="fixedDate" required>
+        <label class="checkbox-row">
+          <input type="checkbox" id="fixedStandingOrder">
+          Stałe zlecenie w banku
+        </label>
+        <button type="submit" class="btn primary">Dodaj stałą opłatę</button>
+      </form>
+      <div id="fixedList" class="fixed-list"></div>
+      <p id="fixedEmptyState" class="empty-state">Brak stałych opłat.</p>
+    </section>
+   </aside>
   </main>
 </div>
 
