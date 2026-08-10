@@ -268,13 +268,26 @@ authToggleBtn.addEventListener('click', () => {
     authSubmitBtn.textContent = 'Zarejestruj się';
     authToggleTextEl.textContent = 'Masz już konto?';
     authToggleBtn.textContent = 'Zaloguj się';
+    authPasswordInput.autocomplete = 'new-password';
   } else {
     authTitleEl.textContent = 'Zaloguj się do swojego konta';
     authSubmitBtn.textContent = 'Zaloguj się';
     authToggleTextEl.textContent = 'Nie masz konta?';
     authToggleBtn.textContent = 'Zarejestruj się';
+    authPasswordInput.autocomplete = 'current-password';
   }
 });
+
+function offerToSavePassword(email, password) {
+  if (!window.PasswordCredential || !navigator.credentials) return;
+  try {
+    const cred = new PasswordCredential({ id: email, password, name: email });
+    navigator.credentials.store(cred);
+  } catch (e) {
+    // przegladarka nie wspiera Credential Management API - nic nie robimy,
+    // przegladarka i tak zwykle sama zaproponuje zapisanie hasla
+  }
+}
 
 authForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -288,6 +301,7 @@ authForm.addEventListener('submit', async (e) => {
     } else {
       await auth.signInWithEmailAndPassword(email, password);
     }
+    offerToSavePassword(email, password);
   } catch (err) {
     authErrorEl.textContent = authErrorMessage(err);
   } finally {
