@@ -218,6 +218,9 @@ const pieChartEl = document.getElementById('pieChart');
 const pieLegendEl = document.getElementById('pieLegend');
 const pieEmptyStateEl = document.getElementById('pieEmptyState');
 
+const trendChartEl = document.getElementById('trendChart');
+const trendEmptyStateEl = document.getElementById('trendEmptyState');
+
 const authScreenEl = document.getElementById('authScreen');
 const appScreenEl = document.getElementById('appScreen');
 const authForm = document.getElementById('authForm');
@@ -737,6 +740,75 @@ function renderPieChart() {
   }
 }
 
+function getRecentMonthKeys(count) {
+  return Object.keys(data)
+    .filter(k => /^\d{4}-\d{2}$/.test(k))
+    .sort()
+    .slice(-count);
+}
+
+function renderTrendChart() {
+  const keys = getRecentMonthKeys(6);
+  trendChartEl.innerHTML = '';
+  trendEmptyStateEl.style.display = keys.length ? 'none' : 'block';
+  if (!keys.length) return;
+
+  const points = keys.map(key => {
+    const m = getMonthData(key);
+    const exp = m.expenses.reduce((s, e) => s + e.amount, 0);
+    const inc = (m.income || 0) + m.extraIncome.reduce((s, x) => s + x.amount, 0);
+    return { key, exp, inc };
+  });
+
+  const width = 320, height = 170, bottomPadding = 22, topPadding = 8;
+  const chartHeight = height - bottomPadding - topPadding;
+  const maxVal = Math.max(1, ...points.map(p => Math.max(p.exp, p.inc)));
+  const groupWidth = width / points.length;
+  const barWidth = Math.min(20, groupWidth / 3);
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  points.forEach((p, i) => {
+    const groupCenter = groupWidth * i + groupWidth / 2;
+    const incX = groupCenter - barWidth - 2;
+    const expX = groupCenter + 2;
+
+    const incH = (p.inc / maxVal) * chartHeight;
+    const incRect = document.createElementNS(svgNS, 'rect');
+    incRect.setAttribute('x', incX);
+    incRect.setAttribute('y', topPadding + (chartHeight - incH));
+    incRect.setAttribute('width', barWidth);
+    incRect.setAttribute('height', Math.max(incH, 1));
+    incRect.setAttribute('rx', 2);
+    incRect.setAttribute('class', 'trend-bar-income');
+    const incTitle = document.createElementNS(svgNS, 'title');
+    incTitle.textContent = `Przychody: ${formatMoney(p.inc)}`;
+    incRect.appendChild(incTitle);
+    trendChartEl.appendChild(incRect);
+
+    const expH = (p.exp / maxVal) * chartHeight;
+    const expRect = document.createElementNS(svgNS, 'rect');
+    expRect.setAttribute('x', expX);
+    expRect.setAttribute('y', topPadding + (chartHeight - expH));
+    expRect.setAttribute('width', barWidth);
+    expRect.setAttribute('height', Math.max(expH, 1));
+    expRect.setAttribute('rx', 2);
+    expRect.setAttribute('class', 'trend-bar-expense');
+    const expTitle = document.createElementNS(svgNS, 'title');
+    expTitle.textContent = `Wydatki: ${formatMoney(p.exp)}`;
+    expRect.appendChild(expTitle);
+    trendChartEl.appendChild(expRect);
+
+    const [, m] = p.key.split('-').map(Number);
+    const label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('x', groupCenter);
+    label.setAttribute('y', height - 6);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('class', 'trend-label');
+    label.textContent = MONTH_NAMES[m - 1].slice(0, 3);
+    trendChartEl.appendChild(label);
+  });
+}
+
 const categoryListEl = document.getElementById('categoryList');
 
 function renderCategoryDatalist() {
@@ -772,6 +844,7 @@ function render() {
   renderFixedList();
   renderExtraIncomeList();
   renderPieChart();
+  renderTrendChart();
 
   // table
   const sorted = [...month.expenses].sort((a, b) => b.date.localeCompare(a.date));

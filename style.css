@@ -418,6 +418,32 @@ input:focus, select:focus {
   color: var(--muted);
 }
 
+.trend-chart {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.trend-bar-income { fill: var(--primary); opacity: 0.5; }
+.trend-bar-expense { fill: var(--danger); }
+
+.trend-label {
+  fill: var(--muted);
+  font-size: 9px;
+  font-family: inherit;
+  text-transform: capitalize;
+}
+
+.trend-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.trend-swatch-income { background: var(--primary); opacity: 0.5; }
+.trend-swatch-expense { background: var(--danger); }
+
 .section-header {
   display: flex;
   align-items: center;
