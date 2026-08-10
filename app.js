@@ -43,6 +43,9 @@ const MONTH_NAMES = ['styczeń','luty','marzec','kwiecień','maj','czerwiec','li
 let data = {};
 let currentMonth = todayKey();
 let currentUser = null;
+let editingExpenseId = null;
+let editingFixedId = null;
+let editingExtraId = null;
 
 function getCategoryIcon(name) {
   if (data._categoryIcons[name]) return data._categoryIcons[name];
@@ -405,6 +408,33 @@ function deleteExpense(id) {
   render();
 }
 
+function startEditExpense(id) {
+  editingExpenseId = id;
+  render();
+}
+
+function cancelEditExpense() {
+  editingExpenseId = null;
+  render();
+}
+
+function saveEditExpense(id, amount, categoryRaw, desc, date) {
+  const month = getMonthData(currentMonth);
+  const exp = month.expenses.find(e => e.id === id);
+  if (!exp || isNaN(amount) || amount <= 0 || !date) return;
+  const category = normalizeCategoryName(categoryRaw.trim() || 'Inne');
+  rememberCategory(category);
+  getCategoryIcon(category);
+  getCategoryColor(category);
+  exp.amount = amount;
+  exp.category = category;
+  exp.desc = desc.trim();
+  exp.date = date;
+  editingExpenseId = null;
+  saveData();
+  render();
+}
+
 extraIncomeForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const title = extraTitleInput.value.trim();
@@ -429,6 +459,28 @@ function deleteExtraIncome(id) {
   render();
 }
 
+function startEditExtra(id) {
+  editingExtraId = id;
+  render();
+}
+
+function cancelEditExtra() {
+  editingExtraId = null;
+  render();
+}
+
+function saveEditExtra(id, title, amount, date) {
+  const month = getMonthData(currentMonth);
+  const item = month.extraIncome.find(x => x.id === id);
+  if (!item || !title.trim() || isNaN(amount) || amount <= 0 || !date) return;
+  item.title = title.trim();
+  item.amount = amount;
+  item.date = date;
+  editingExtraId = null;
+  saveData();
+  render();
+}
+
 function renderExtraIncomeList() {
   const month = getMonthData(currentMonth);
   const items = [...month.extraIncome].sort((a, b) => b.date.localeCompare(a.date));
@@ -437,15 +489,38 @@ function renderExtraIncomeList() {
   for (const item of items) {
     const el = document.createElement('div');
     el.className = 'fixed-item';
-    el.innerHTML = `
-      <div class="fixed-item-main">
-        <span class="fixed-item-title">${item.title}</span>
-        <span class="fixed-item-meta">${item.date}</span>
-      </div>
-      <span class="fixed-item-amount positive">+${formatMoney(item.amount)}</span>
-      <button class="delete-btn" title="Usuń">✕</button>
-    `;
-    el.querySelector('.delete-btn').addEventListener('click', () => deleteExtraIncome(item.id));
+    if (item.id === editingExtraId) {
+      el.innerHTML = `
+        <div class="inline-edit-form">
+          <input type="text" class="edit-input" value="${item.title}">
+          <input type="number" step="0.01" min="0.01" class="edit-input" value="${item.amount}">
+          <input type="date" class="edit-input" value="${item.date}">
+          <div class="edit-actions">
+            <button class="save-edit-btn" title="Zapisz">✓ Zapisz</button>
+            <button class="cancel-edit-btn" title="Anuluj">Anuluj</button>
+          </div>
+        </div>
+      `;
+      const inputs = el.querySelectorAll('.edit-input');
+      el.querySelector('.save-edit-btn').addEventListener('click', () => {
+        saveEditExtra(item.id, inputs[0].value, parseFloat(inputs[1].value), inputs[2].value);
+      });
+      el.querySelector('.cancel-edit-btn').addEventListener('click', cancelEditExtra);
+    } else {
+      el.innerHTML = `
+        <div class="fixed-item-main">
+          <span class="fixed-item-title">${item.title}</span>
+          <span class="fixed-item-meta">${item.date}</span>
+        </div>
+        <span class="fixed-item-amount positive">+${formatMoney(item.amount)}</span>
+        <div class="edit-actions">
+          <button class="edit-btn" title="Edytuj">✎</button>
+          <button class="delete-btn" title="Usuń">✕</button>
+        </div>
+      `;
+      el.querySelector('.edit-btn').addEventListener('click', () => startEditExtra(item.id));
+      el.querySelector('.delete-btn').addEventListener('click', () => deleteExtraIncome(item.id));
+    }
     extraIncomeListEl.appendChild(el);
   }
 }
@@ -482,6 +557,28 @@ function toggleStandingOrder(id) {
   render();
 }
 
+function startEditFixed(id) {
+  editingFixedId = id;
+  render();
+}
+
+function cancelEditFixed() {
+  editingFixedId = null;
+  render();
+}
+
+function saveEditFixed(id, title, amount, date, standingOrder) {
+  const payment = data._fixedPayments.find(p => p.id === id);
+  if (!payment || !title.trim() || isNaN(amount) || amount <= 0 || !date) return;
+  payment.title = title.trim();
+  payment.amount = amount;
+  payment.date = date;
+  payment.standingOrder = standingOrder;
+  editingFixedId = null;
+  saveData();
+  render();
+}
+
 function renderFixedList() {
   const payments = [...data._fixedPayments].sort((a, b) => a.date.localeCompare(b.date));
   fixedListEl.innerHTML = '';
@@ -489,17 +586,42 @@ function renderFixedList() {
   for (const p of payments) {
     const item = document.createElement('div');
     item.className = 'fixed-item';
-    item.innerHTML = `
-      <div class="fixed-item-main">
-        <span class="fixed-item-title">${p.title}</span>
-        <span class="fixed-item-meta">${p.date}</span>
-        <button type="button" class="standing-order-toggle${p.standingOrder ? ' active' : ''}">${p.standingOrder ? '✓ zlecenie stałe' : 'oznacz jako zlecenie stałe'}</button>
-      </div>
-      <span class="fixed-item-amount">${formatMoney(p.amount)}</span>
-      <button class="delete-btn" title="Usuń">✕</button>
-    `;
-    item.querySelector('.standing-order-toggle').addEventListener('click', () => toggleStandingOrder(p.id));
-    item.querySelector('.delete-btn').addEventListener('click', () => deleteFixedPayment(p.id));
+    if (p.id === editingFixedId) {
+      item.innerHTML = `
+        <div class="inline-edit-form">
+          <input type="text" class="edit-input" value="${p.title}">
+          <input type="number" step="0.01" min="0.01" class="edit-input" value="${p.amount}">
+          <input type="date" class="edit-input" value="${p.date}">
+          <label class="checkbox-row"><input type="checkbox" ${p.standingOrder ? 'checked' : ''}> Stałe zlecenie w banku</label>
+          <div class="edit-actions">
+            <button class="save-edit-btn" title="Zapisz">✓ Zapisz</button>
+            <button class="cancel-edit-btn" title="Anuluj">Anuluj</button>
+          </div>
+        </div>
+      `;
+      const inputs = item.querySelectorAll('.edit-input');
+      const checkbox = item.querySelector('input[type="checkbox"]');
+      item.querySelector('.save-edit-btn').addEventListener('click', () => {
+        saveEditFixed(p.id, inputs[0].value, parseFloat(inputs[1].value), inputs[2].value, checkbox.checked);
+      });
+      item.querySelector('.cancel-edit-btn').addEventListener('click', cancelEditFixed);
+    } else {
+      item.innerHTML = `
+        <div class="fixed-item-main">
+          <span class="fixed-item-title">${p.title}</span>
+          <span class="fixed-item-meta">${p.date}</span>
+          <button type="button" class="standing-order-toggle${p.standingOrder ? ' active' : ''}">${p.standingOrder ? '✓ zlecenie stałe' : 'oznacz jako zlecenie stałe'}</button>
+        </div>
+        <span class="fixed-item-amount">${formatMoney(p.amount)}</span>
+        <div class="edit-actions">
+          <button class="edit-btn" title="Edytuj">✎</button>
+          <button class="delete-btn" title="Usuń">✕</button>
+        </div>
+      `;
+      item.querySelector('.standing-order-toggle').addEventListener('click', () => toggleStandingOrder(p.id));
+      item.querySelector('.edit-btn').addEventListener('click', () => startEditFixed(p.id));
+      item.querySelector('.delete-btn').addEventListener('click', () => deleteFixedPayment(p.id));
+    }
     fixedListEl.appendChild(item);
   }
 }
@@ -618,14 +740,39 @@ function render() {
   emptyStateEl.style.display = sorted.length ? 'none' : 'block';
   for (const exp of sorted) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${exp.date}</td>
-      <td>${getCategoryIcon(exp.category)} ${exp.category}</td>
-      <td>${exp.desc || '—'}</td>
-      <td>${formatMoney(exp.amount)}</td>
-      <td><button class="delete-btn" title="Usuń">✕</button></td>
-    `;
-    tr.querySelector('.delete-btn').addEventListener('click', () => deleteExpense(exp.id));
+    if (exp.id === editingExpenseId) {
+      tr.innerHTML = `
+        <td><input type="date" class="edit-input" value="${exp.date}"></td>
+        <td><input type="text" class="edit-input" value="${exp.category}" list="categoryList"></td>
+        <td><input type="text" class="edit-input" value="${exp.desc || ''}"></td>
+        <td><input type="number" step="0.01" min="0.01" class="edit-input edit-input-amount" value="${exp.amount}"></td>
+        <td class="edit-actions">
+          <button class="save-edit-btn" title="Zapisz">✓</button>
+          <button class="cancel-edit-btn" title="Anuluj">✕</button>
+        </td>
+      `;
+      const dateInput = tr.querySelector('input[type="date"]');
+      const categoryInput = tr.querySelector('input[type="text"]');
+      const descInput = tr.querySelectorAll('input[type="text"]')[1];
+      const amountInput = tr.querySelector('.edit-input-amount');
+      tr.querySelector('.save-edit-btn').addEventListener('click', () => {
+        saveEditExpense(exp.id, parseFloat(amountInput.value), categoryInput.value, descInput.value, dateInput.value);
+      });
+      tr.querySelector('.cancel-edit-btn').addEventListener('click', cancelEditExpense);
+    } else {
+      tr.innerHTML = `
+        <td>${exp.date}</td>
+        <td>${getCategoryIcon(exp.category)} ${exp.category}</td>
+        <td>${exp.desc || '—'}</td>
+        <td>${formatMoney(exp.amount)}</td>
+        <td class="edit-actions">
+          <button class="edit-btn" title="Edytuj">✎</button>
+          <button class="delete-btn" title="Usuń">✕</button>
+        </td>
+      `;
+      tr.querySelector('.edit-btn').addEventListener('click', () => startEditExpense(exp.id));
+      tr.querySelector('.delete-btn').addEventListener('click', () => deleteExpense(exp.id));
+    }
     expenseTableBody.appendChild(tr);
   }
 

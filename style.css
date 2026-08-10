@@ -458,6 +458,61 @@ th {
   font-size: 1rem;
 }
 
+.edit-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+}
+.edit-btn:hover { color: var(--primary); }
+
+.edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.edit-input {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.edit-input-amount {
+  width: 90px;
+}
+
+.inline-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.save-edit-btn, .cancel-edit-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+}
+.save-edit-btn {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+.save-edit-btn:hover { background: var(--primary-dark); }
+.cancel-edit-btn:hover { background: var(--bg); }
+
 .empty-state {
   color: var(--muted);
   text-align: center;
